@@ -55,60 +55,68 @@ export default defineEventHandler(async event => {
     try {
       const body = await readBody(event);
 
-      const validatedBody = watchHistoryItemSchema.parse(body);
+      // Accept single object (normal playback) or array (e.g. user import)
+      const bodySchema = z.union([
+        watchHistoryItemSchema,
+        z.array(watchHistoryItemSchema),
+      ]);
+      const parsed = bodySchema.parse(body);
+      const items = Array.isArray(parsed) ? parsed : [parsed];
 
-      const watchedAt = defaultAndCoerceDateTime(validatedBody.watchedAt);
-      const now = new Date();
+      const results = [];
 
-      // Normalize IDs for movies (use '\n' instead of null to satisfy unique constraint)
-      const normSeasonId = validatedBody.meta.type === 'movie' ? '\n' : validatedBody.seasonId || null;
-      const normEpisodeId = validatedBody.meta.type === 'movie' ? '\n' : validatedBody.episodeId || null;
+      for (const validatedBody of items) {
+        const itemTmdbId = items.length === 1 ? tmdbId : (validatedBody.tmdbId ?? tmdbId);
+        const watchedAt = defaultAndCoerceDateTime(validatedBody.watchedAt);
+        const now = new Date();
 
-      const existingItem = await prisma.watch_history.findUnique({
-        where: {
-          tmdb_id_user_id_season_id_episode_id: {
-            tmdb_id: tmdbId,
-            user_id: userId,
-            season_id: normSeasonId,
-            episode_id: normEpisodeId,
-          },
-        },
-      });
+        // Normalize IDs for movies (use '\n' instead of null to satisfy unique constraint)
+        const normSeasonId = validatedBody.meta.type === 'movie' ? '\n' : validatedBody.seasonId ?? null;
+        const normEpisodeId = validatedBody.meta.type === 'movie' ? '\n' : validatedBody.episodeId ?? null;
 
-      let watchHistoryItem;
-
-      const data = {
-        duration: parseFloat(validatedBody.duration),
-        watched: parseFloat(validatedBody.watched),
-        watched_at: watchedAt,
-        completed: validatedBody.completed,
-        meta: validatedBody.meta,
-        updated_at: now,
-      };
-
-      if (existingItem) {
-        watchHistoryItem = await prisma.watch_history.update({
+        const existingItem = await prisma.watch_history.findUnique({
           where: {
-            id: existingItem.id,
-          },
-          data,
-        });
-      } else {
-        watchHistoryItem = await prisma.watch_history.create({
-          data: {
-            id: randomUUID(),
-            tmdb_id: tmdbId,
-            user_id: userId,
-            season_id: normSeasonId,
-            episode_id: normEpisodeId,
-            season_number: validatedBody.seasonNumber || null,
-            episode_number: validatedBody.episodeNumber || null,
-            ...data,
+            tmdb_id_user_id_season_id_episode_id: {
+              tmdb_id: itemTmdbId,
+              user_id: userId,
+              season_id: normSeasonId,
+              episode_id: normEpisodeId,
+            },
           },
         });
-      }
 
-        return {
+        const data = {
+          duration: parseFloat(validatedBody.duration),
+          watched: parseFloat(validatedBody.watched),
+          watched_at: watchedAt,
+          completed: validatedBody.completed,
+          meta: validatedBody.meta,
+          updated_at: now,
+        };
+
+        let watchHistoryItem;
+
+        if (existingItem) {
+          watchHistoryItem = await prisma.watch_history.update({
+            where: { id: existingItem.id },
+            data,
+          });
+        } else {
+          watchHistoryItem = await prisma.watch_history.create({
+            data: {
+              id: randomUUID(),
+              tmdb_id: itemTmdbId,
+              user_id: userId,
+              season_id: normSeasonId,
+              episode_id: normEpisodeId,
+              season_number: validatedBody.seasonNumber ?? null,
+              episode_number: validatedBody.episodeNumber ?? null,
+              ...data,
+            },
+          });
+        }
+
+        results.push({
           success: true,
           id: watchHistoryItem.id,
           tmdbId: watchHistoryItem.tmdb_id,
@@ -123,14 +131,17 @@ export default defineEventHandler(async event => {
           watchedAt: watchHistoryItem.watched_at.toISOString(),
           completed: watchHistoryItem.completed,
           updatedAt: watchHistoryItem.updated_at.toISOString(),
-        };
-      } catch (dbError) {
-        console.error('Database error:', dbError);
-        throw createError({
-          statusCode: 500,
-          message: 'Failed to save watch history',
         });
       }
+
+      return results.length === 1 ? results[0] : { success: true, count: results.length, items: results };
+    } catch (dbError) {
+      console.error('Database error:', dbError);
+      throw createError({
+        statusCode: 500,
+        message: 'Failed to save watch history',
+      });
+    }
   }
 
   if (method === 'DELETE') {

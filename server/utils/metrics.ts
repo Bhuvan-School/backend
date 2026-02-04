@@ -10,6 +10,17 @@ const METRICS_DAILY_FILE = '.metrics_daily.json';
 const METRICS_WEEKLY_FILE = '.metrics_weekly.json';
 const METRICS_MONTHLY_FILE = '.metrics_monthly.json';
 
+function getMetricsFileName(interval: string): string {
+  const fileMap: Record<string, string> = {
+    default: METRICS_FILE,
+    daily: METRICS_DAILY_FILE,
+    weekly: METRICS_WEEKLY_FILE,
+    monthly: METRICS_MONTHLY_FILE,
+  };
+  const name = fileMap[interval] ?? `.metrics_${interval}.json`;
+  return path.join(process.cwd(), name);
+}
+
 // Global registries
 const registries = {
   default: register, // All-time metrics (never cleared)
