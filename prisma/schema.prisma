@@ -95,6 +95,7 @@ model user_group_order {
 model user_settings {
   id                                   String   @id
   application_theme                    String?  @db.VarChar(255)
+  custom_theme                         Json?
   application_language                 String?  @db.VarChar(255)
   default_subtitle_language            String?  @db.VarChar(255)
   proxy_urls                           String[]

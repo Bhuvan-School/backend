@@ -1,13 +1,17 @@
 import { useAuth } from '~/utils/auth';
 import { z } from 'zod';
 import { scopedLogger } from '~/utils/logger';
-import type { user_settings } from '~/../generated/client';
 import { prisma } from '~/utils/prisma';
 
 const log = scopedLogger('user-settings');
 
 const userSettingsSchema = z.object({
   applicationTheme: z.string().nullable().optional(),
+  customTheme: z.object({
+    primary: z.string(),
+    secondary: z.string(),
+    tertiary: z.string(),
+  }).nullable().optional(),
   applicationLanguage: z.string().optional().default('en'),
   defaultSubtitleLanguage: z.string().nullable().optional(),
   proxyUrls: z.array(z.string()).nullable().optional(),
@@ -66,13 +70,14 @@ export default defineEventHandler(async event => {
 
   if (event.method === 'GET') {
     try {
-      const settings = (await prisma.user_settings.findUnique({
+      const settings = await prisma.user_settings.findUnique({
         where: { id: userId },
-      })) as unknown as user_settings | null;
+      });
 
       return {
         id: userId,
         applicationTheme: settings?.application_theme || null,
+        customTheme: settings?.custom_theme || null,
         applicationLanguage: settings?.application_language || 'en',
         defaultSubtitleLanguage: settings?.default_subtitle_language || null,
         proxyUrls: settings?.proxy_urls.length === 0 ? null : settings?.proxy_urls || null,
@@ -124,6 +129,7 @@ export default defineEventHandler(async event => {
 
       const createData = {
         application_theme: validatedBody.applicationTheme ?? null,
+        custom_theme: validatedBody.customTheme ?? null,
         application_language: validatedBody.applicationLanguage,
         default_subtitle_language: validatedBody.defaultSubtitleLanguage ?? null,
         proxy_urls: validatedBody.proxyUrls === null ? [] : validatedBody.proxyUrls || [],
@@ -159,6 +165,8 @@ export default defineEventHandler(async event => {
       const updateData: Partial<typeof createData> = {};
       if (Object.prototype.hasOwnProperty.call(body, 'applicationTheme'))
         updateData.application_theme = createData.application_theme;
+      if (Object.prototype.hasOwnProperty.call(body, 'customTheme'))
+        updateData.custom_theme = createData.custom_theme;
       if (Object.prototype.hasOwnProperty.call(body, 'applicationLanguage'))
         updateData.application_language = createData.application_language;
       if (Object.prototype.hasOwnProperty.call(body, 'defaultSubtitleLanguage'))
@@ -224,20 +232,21 @@ export default defineEventHandler(async event => {
         createData: { id: userId, ...createData },
       });
 
-      const settings = (await prisma.user_settings.upsert({
+      const settings = await prisma.user_settings.upsert({
         where: { id: userId },
         update: updateData,
         create: {
           id: userId,
           ...createData,
         },
-      })) as unknown as user_settings;
+      });
 
       log.info('Settings updated successfully', { userId });
 
       return {
         id: userId,
         applicationTheme: settings.application_theme,
+        customTheme: settings.custom_theme,
         applicationLanguage: settings.application_language,
         defaultSubtitleLanguage: settings.default_subtitle_language,
         proxyUrls: settings.proxy_urls.length === 0 ? null : settings.proxy_urls,
