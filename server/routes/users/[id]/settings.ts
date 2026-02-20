@@ -19,6 +19,7 @@ const userSettingsSchema = z.object({
   febboxKey: z.string().nullable().optional(),
   debridToken: z.string().nullable().optional(),
   debridService: z.string().nullable().optional(),
+  tidbKey: z.string().nullable().optional(),
   enableThumbnails: z.boolean().optional().default(false),
   enableAutoplay: z.boolean().optional().default(true),
   enableSkipCredits: z.boolean().optional().default(true),
@@ -85,6 +86,7 @@ export default defineEventHandler(async event => {
         febboxKey: settings?.febbox_key || null,
         debridToken: settings?.debrid_token || null,
         debridService: settings?.debrid_service || null,
+        tidbKey: settings?.tidb_key || null,
         enableThumbnails: settings?.enable_thumbnails ?? false,
         enableAutoplay: settings?.enable_autoplay ?? true,
         enableSkipCredits: settings?.enable_skip_credits ?? true,
@@ -137,6 +139,7 @@ export default defineEventHandler(async event => {
         febbox_key: validatedBody.febboxKey ?? null,
         debrid_token: validatedBody.debridToken ?? null,
         debrid_service: validatedBody.debridService ?? null,
+        tidb_key: validatedBody.tidbKey ?? null,
         enable_thumbnails: validatedBody.enableThumbnails,
         enable_autoplay: validatedBody.enableAutoplay,
         enable_skip_credits: validatedBody.enableSkipCredits,
@@ -181,6 +184,8 @@ export default defineEventHandler(async event => {
         updateData.debrid_token = createData.debrid_token;
       if (Object.prototype.hasOwnProperty.call(body, 'debridService'))
         updateData.debrid_service = createData.debrid_service;
+      if (Object.prototype.hasOwnProperty.call(body, 'tidbKey'))
+        updateData.tidb_key = createData.tidb_key;
       if (Object.prototype.hasOwnProperty.call(body, 'enableThumbnails'))
         updateData.enable_thumbnails = createData.enable_thumbnails;
       if (Object.prototype.hasOwnProperty.call(body, 'enableAutoplay'))
@@ -254,6 +259,7 @@ export default defineEventHandler(async event => {
         febboxKey: settings.febbox_key,
         debridToken: settings.debrid_token,
         debridService: settings.debrid_service,
+        tidbKey: settings.tidb_key,
         enableThumbnails: settings.enable_thumbnails,
         enableAutoplay: settings.enable_autoplay,
         enableSkipCredits: settings.enable_skip_credits,

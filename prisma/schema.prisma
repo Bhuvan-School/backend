@@ -126,6 +126,7 @@ model user_settings {
   debrid_service                       String?  @db.VarChar(255)
   debrid_token                         String?  @db.VarChar(255)
   enable_auto_resume_on_playback_error Boolean  @default(false)
+  tidb_key                             String?  @db.VarChar(255)
 }
 
 model users {
