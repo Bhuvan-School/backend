@@ -234,6 +234,8 @@ export default defineEventHandler(async event => {
         updateData.manual_source_selection = createData.manual_source_selection;
       if (Object.prototype.hasOwnProperty.call(body, 'enableDoubleClickToSeek'))
         updateData.enable_double_click_to_seek = createData.enable_double_click_to_seek;
+      if (Object.prototype.hasOwnProperty.call(body, 'enableAutoResumeOnPlaybackError'))
+        updateData.enable_auto_resume_on_playback_error = createData.enable_auto_resume_on_playback_error;
       if (Object.prototype.hasOwnProperty.call(body, 'enablePauseOverlay'))
         updateData.enable_pause_overlay = createData.enable_pause_overlay;
 
