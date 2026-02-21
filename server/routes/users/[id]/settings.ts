@@ -43,6 +43,7 @@ const userSettingsSchema = z.object({
   manualSourceSelection: z.boolean().optional().default(false),
   enableDoubleClickToSeek: z.boolean().optional().default(false),
   enableAutoResumeOnPlaybackError: z.boolean().optional().default(false),
+  enablePauseOverlay: z.boolean().optional().default(false),
 });
 
 export default defineEventHandler(async event => {
@@ -109,6 +110,8 @@ export default defineEventHandler(async event => {
         homeSectionOrder: settings?.home_section_order || [],
         manualSourceSelection: settings?.manual_source_selection ?? false,
         enableDoubleClickToSeek: settings?.enable_double_click_to_seek ?? false,
+        enableAutoResumeOnPlaybackError: settings?.enable_auto_resume_on_playback_error ?? false,
+        enablePauseOverlay: settings?.enable_pause_overlay ?? false,
       };
     } catch (error) {
       log.error('Failed to get user settings', {
@@ -162,7 +165,8 @@ export default defineEventHandler(async event => {
         home_section_order: validatedBody.homeSectionOrder || [],
         manual_source_selection: validatedBody.manualSourceSelection,
         enable_double_click_to_seek: validatedBody.enableDoubleClickToSeek,
-        enable_auto_resume_on_playback_error: false,
+        enable_auto_resume_on_playback_error: validatedBody.enableAutoResumeOnPlaybackError,
+        enable_pause_overlay: validatedBody.enablePauseOverlay,
       };
 
       const updateData: Partial<typeof createData> = {};
@@ -230,6 +234,8 @@ export default defineEventHandler(async event => {
         updateData.manual_source_selection = createData.manual_source_selection;
       if (Object.prototype.hasOwnProperty.call(body, 'enableDoubleClickToSeek'))
         updateData.enable_double_click_to_seek = createData.enable_double_click_to_seek;
+      if (Object.prototype.hasOwnProperty.call(body, 'enablePauseOverlay'))
+        updateData.enable_pause_overlay = createData.enable_pause_overlay;
 
       log.info('Preparing to upsert settings', {
         userId,
@@ -282,6 +288,8 @@ export default defineEventHandler(async event => {
         homeSectionOrder: settings.home_section_order,
         manualSourceSelection: settings.manual_source_selection,
         enableDoubleClickToSeek: settings.enable_double_click_to_seek,
+        enableAutoResumeOnPlaybackError: settings.enable_auto_resume_on_playback_error,
+        enablePauseOverlay: settings.enable_pause_overlay,
       };
     } catch (error) {
       log.error('Failed to update user settings', {
